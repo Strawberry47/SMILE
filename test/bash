@@ -1,0 +1,13 @@
+python main.py --dataset "config_movielens100k"&
+python main.py --dataset "config_movielens1M"&
+python main.py --dataset "config_Ciao"
+
+
+python rs_baselines.py --dataset "config_movielens100k"&
+python rs_baselines.py --dataset "config_movielens1M"&
+python rs_baselines.py --dataset "config_Ciao"
+
+
+python five_simple_baselines.py --dataset "config_movielens100k"&
+python five_simple_baselines.py --dataset "config_movielens1M"&
+python five_simple_baselines.py --dataset "config_Ciao"
