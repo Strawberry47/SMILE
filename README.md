@@ -3,7 +3,10 @@
 [![PyTorch](https://img.shields.io/badge/pytorch-1.9.0+cu111-%237732a8)](https://pytorch.org/)
 
 This repository contains the official Pytorch implementation for the paper *Who Are the Best Adopters? User Selection Model for Free Trial Item Promotion*. 
-<img src="figures/freetrial.png" alt="introduction" style="zoom:100%;" />
+
+<img src="figures/mian.png" alt="main" style="zoom:80%;" />
+<img src="figures/freetrial.png" alt="introduction" style="zoom:80%;" />
+
 
 More descriptions are available via the [paper](https://ieeexplore.ieee.org/document/9882319) 
 
