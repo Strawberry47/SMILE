@@ -28,7 +28,7 @@ class Tree():
         # self.child_num = int(self.config['USERSELECTOR']['CHILD_NUM']) # 非叶节点的孩子数，相当于论文里的c
         self.clustering_type = self.config['USERSELECTOR']['CLUSTERING_TYPE'] # pca聚类
         self.output = self.config['ENV']['OUT_PUT']
-        # 存聚类需要的embedding '../results/BPR-movielens/tpgr/rating_vector'
+        # 存聚类需要的embedding '../results/BPR-movielens/smile/rating_vector'
         self.clustering_vector_file_path = self.output + '%s_vector' % (self.config['USERSELECTOR']['CLUSTERING_VECTOR_TYPE'].lower())
         # 树结构 id2code之类的
         self.tree_file_path = self.output + 'tree_model_%s_%s_c%d' % (self.config['USERSELECTOR']['CLUSTERING_VECTOR_TYPE'].lower(),

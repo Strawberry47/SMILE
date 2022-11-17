@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+# tree-depth那个图
 # 创建数据
 x = ['1','2','3','4']
 avg_reward = [132,138.3,127.0,112]

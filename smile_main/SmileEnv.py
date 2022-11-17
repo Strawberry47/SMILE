@@ -54,7 +54,7 @@ class SmileEnv(gym.Env):
     def reset(self):
         self.promoted_items = self.__item_generator()
         self.reward_calculator = RewardCalculator(self.config, self.dataProcess,
-                                             self.promoted_items)
+                                             self.promoted_items,self.device)
         self.last_reward = self.reward_calculator.last_reward
         self.action = None
         self.last_interactions = self.dataProcess.rating

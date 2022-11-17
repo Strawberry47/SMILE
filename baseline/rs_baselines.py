@@ -16,6 +16,7 @@ from core import run_time_tools
 import time
 from sklearn.neighbors import NearestNeighbors
 import logzero
+from logzero import setup_logger
 from smile_main.RewardCalculator import RewardCalculator
 import configparser
 import random
@@ -120,27 +121,35 @@ if __name__ == '__main__':
     args = parser.parse_known_args()[0]
 
     path = os.path.join("../config", args.dataset)
+
+    # path = '../config/config_Ciao'
+    # path = '../config/config_movielens1M'
+    # path = '../config/config_movielens100k'
+
     config = configparser.ConfigParser()
     _x = open(path)
-
-    # _x = open('../config/config_movielens100k')
-    # _x = open('../config/config_movielens1M')
-    # _x = open('../config/config_Ciao')
     config.read_file(_x)
     dataset = DataProcess(config)
-    print("Output dir is {}".format(config['ENV']['OUT_PUT']))
+    print("CF baseline, output dir is {}".format(config['ENV']['OUT_PUT']))
     # logs
     nowtime = datetime.datetime.fromtimestamp(time.time()).strftime("%Y_%m_%d-%H_%M_%S")
-    logger_path = os.path.join(config['ENV']['OUT_PUT'], "baseline_logs", "[CF_BASELINES]_{}.log".format(nowtime))
-    logzero.logfile(logger_path)
+    # logger_path = os.path.join(config['ENV']['OUT_PUT'], "baseline_logs", "[CF_BASELINES]_{}.log".format(nowtime))
+    # logzero.logfile(logger_path)
+
+    logger_path1 = os.path.join(config['ENV']['OUT_PUT'], "baseline_logs", "[usercf_BASELINE]_{}.log".format(nowtime))
+    logger1 = setup_logger(name="mylogger1", logfile=logger_path1)
+
+    logger_path2 = os.path.join(config['ENV']['OUT_PUT'], "baseline_logs", "[itemcf_BASELINE]_{}.log".format(nowtime))
+    logger2 = setup_logger(name="mylogger2", logfile=logger_path2)
 
     baselines = Baselines(config,dataset)
     # start run
-    epoch = 100
+    epochs = 100
     usercf_avg_rew, usercf_recnum = [], []
     itemcf_avg_rew, itemcf_recnum = [], []
 
-    for i in range(epoch):
+    for i in range(epochs):
+        epoch = i
         print("# {} Epoch...".format(i))
         #一次获取五个baseline的结果
         baselines.reset()
@@ -150,14 +159,20 @@ if __name__ == '__main__':
         avg_rew0,recnum0 = baselines.return_res(itemcf_users)
         usercf_avg_rew.append(avg_rew0)
         usercf_recnum.append(recnum0)
+        result = {'ave_rew': avg_rew0, 'recnum': recnum0}
+        logger1.info("Epoch: [{}], Info: [{}]".format(epoch, result))
+
 
         avg_rew1,recnum1 = baselines.return_res(usercf_users)
         itemcf_avg_rew.append(avg_rew1)
         itemcf_recnum.append(recnum1)
+        result = {'ave_rew': avg_rew1, 'recnum': recnum1}
+        logger2.info("Epoch: [{}], Info: [{}]".format(epoch, result))
 
 
-    logzero.logger.info("average reward of usercf:{}".format(usercf_avg_rew))
-    logzero.logger.info("recnum reward of usercf:{}".format(usercf_recnum))
 
-    logzero.logger.info("average reward of itemcf:{}".format(itemcf_avg_rew))
-    logzero.logger.info("recnum reward of itemcf:{}".format(itemcf_recnum))
+    # logzero.logger.info("average reward of usercf:{}".format(usercf_avg_rew))
+    # logzero.logger.info("recnum reward of usercf:{}".format(usercf_recnum))
+    #
+    # logzero.logger.info("average reward of itemcf:{}".format(itemcf_avg_rew))
+    # logzero.logger.info("recnum reward of itemcf:{}".format(itemcf_recnum))

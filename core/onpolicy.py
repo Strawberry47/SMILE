@@ -217,6 +217,10 @@ def onpolicy_trainer(
             if save_fn:
                 save_fn(policy)
         logger.save_data(epoch, env_step, gradient_step, save_checkpoint_fn)
+
+        test_result['best_average_rew'] = best_average_rew
+        test_result['best_recnum'] = best_recnum
+
         callbacks.on_epoch_end(epoch, test_result)
 
         if verbose:

@@ -29,11 +29,12 @@ from core.log_tools import BaseLogger,LazyLogger,BasicLogger
 import time
 import logzero
 from logzero import logger
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 
 def main():
     # 解析配置文件
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", type=str, default="config_movielens100k")
+    parser.add_argument("--dataset", type=str, default="config_movielens1M")
     args = parser.parse_known_args()[0]
 
     path = os.path.join("../config", args.dataset)
@@ -61,7 +62,7 @@ def main():
     torch.manual_seed(seed)
 
     GPU = torch.cuda.is_available()
-    device = torch.device('cuda' if GPU else "cpu")
+    device = torch.device('cuda:1' if GPU else "cpu")
     # device = 'cpu'
     # processing the dataset
     dataset = DataProcess(config)
@@ -75,7 +76,7 @@ def main():
     # create envs
     train_num = int(config['META']['TRAINNUM'])
     test_num = int(config['META']['TESTNUM'])
-    # train_num = test_num=2 # TODO:test
+    # train_num = test_num = 2 # TODO:test
 
 
     register(
@@ -91,7 +92,7 @@ def main():
         [lambda: gym.make("SmileEnv-v0", ) for _ in range(train_num)])
     test_envs = DummyVectorEnv(
         [lambda: gym.make('SmileEnv-v0') for _ in range(test_num)])
-
+    print("end constructing environments")
     train_envs.seed(seed)
     test_envs.seed(seed)
 
@@ -145,11 +146,6 @@ def main():
         policy, train_collector, test_collector, max_epoch=100,
         episode_per_collect=train_num,episode_per_test=test_num,
         step_per_epoch=5000, repeat_per_collect = 2, batch_size=1024,logger=logger1)
-
-
-    # train
-    # train_model = trainer(tree.child_num,user_selector,state_tracker,train_envs,optim,config)
-    # train_model.train(device)
 
 def save_model_fn(epoch, policy, model_save_path, optim, state_tracker, is_save=False):
     if not is_save:

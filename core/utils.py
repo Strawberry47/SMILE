@@ -5,6 +5,13 @@
 import time
 import numpy as np
 from typing import Any, Dict, Union, Callable, Optional
+
+import pandas as pd
+from numba import njit
+from scipy.sparse import csr_matrix
+from torch import optim
+import torch
+
 from core.base import BasePolicy
 from core.collector import Collector
 from core.log_tools import BaseLogger
@@ -84,3 +91,95 @@ def gather_info(
             "train_speed": f"{train_speed:.2f} step/s",
         })
     return result
+
+def minibatch(*tensors, **kwargs):
+
+    batch_size = 2048
+
+    if len(tensors) == 1:
+        tensor = tensors[0]
+        for i in range(0, len(tensor), batch_size):
+            yield tensor[i:i + batch_size]
+    else:
+        for i in range(0, len(tensors[0]), batch_size):
+            yield tuple(x[i:i + batch_size] for x in tensors)
+
+def shuffle(*arrays, **kwargs):
+
+    require_indices = kwargs.get('indices', False)
+
+    if len(set(len(x) for x in arrays)) != 1:
+        raise ValueError('All inputs to shuffle must have '
+                         'the same length.')
+
+    shuffle_indices = np.arange(len(arrays[0])) # 传入的第一个参数是tuple类型
+    np.random.shuffle(shuffle_indices)
+
+    if len(arrays) == 1: # 只传入了一个参数
+        result = arrays[0][shuffle_indices]
+    else:
+        result = tuple(x[shuffle_indices] for x in arrays)
+
+    if require_indices:
+        return result, shuffle_indices
+    else:
+        return result
+
+class BPRLoss:
+    def __init__(self,
+                 recmodel):
+        self.model = recmodel
+        self.weight_decay = 0.0001
+        self.lr = 0.001
+        self.opt = optim.Adam(recmodel.parameters(), lr=self.lr)
+
+    def stageOne(self, users, pos, neg):
+        loss, reg_loss = self.model.bpr_loss(users, pos, neg)
+        reg_loss = reg_loss*self.weight_decay
+        loss = loss + reg_loss
+
+        self.opt.zero_grad()
+        loss.backward()
+        self.opt.step()
+
+        return loss.cpu().item()
+
+
+@njit
+def find_negative(user_ids, item_ids, mat, df_negative, max_item):
+    for i in range(len(user_ids)):
+        user, item = user_ids[i], item_ids[i]  # 一条一条地取
+
+        neg = item + 1
+        while neg <= max_item:
+            if mat[user, neg]:  # True # 在大矩阵或小矩阵都是有评分的
+                neg += 1
+            else:  # 找到了负样本，就退出
+                df_negative[i, 0] = user
+                df_negative[i, 1] = neg
+                break
+        else:
+            neg = item - 1
+            while neg >= 0:
+                if mat[user, neg]:
+                    neg -= 1
+                else:
+                    df_negative[i, 0] = user
+                    df_negative[i, 1] = neg
+                    break
+
+def negative_sample(df):
+    sparseMatrix = csr_matrix((np.ones(len(df)), (df['userid'], df['itemid'])),
+                              shape=(df['userid'].max() + 1, df['itemid'].max() + 1),
+                              dtype=np.bool).toarray()
+
+    df_negative = np.zeros([len(df), 2])
+    find_negative(df['userid'].to_numpy(), df['itemid'].to_numpy(), sparseMatrix, df_negative,
+                  df['itemid'].max())
+    df_negative = pd.DataFrame(df_negative, columns=["userid", "neg_itemid"], dtype=int)
+    pairwise = pd.concat([df[['userid'] + ['itemid']], df_negative['neg_itemid']], axis=1)
+
+    users = torch.Tensor(pairwise['userid'].to_numpy()).long()
+    posItems = torch.Tensor(pairwise['itemid'].to_numpy()).long()
+    negItems = torch.Tensor(pairwise['neg_itemid'].to_numpy()).long()
+    return  users,posItems,negItems

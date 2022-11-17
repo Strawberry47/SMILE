@@ -59,13 +59,14 @@ class LoggerCallback_RL(LoggerCallback_Update):
     def on_epoch_end(self, epoch, logs=None):
         num_test = logs["n/ep"]
         # len_tra = logs["n/st"] / num_test
-        ave_rew = logs["average_rew"]
-        recnum = logs["recnum"]
+        best_average_rew = logs["best_average_rew"]
+        best_recnum = logs["best_recnum"]
 
         result = dict()
         result['num_test'] = num_test
-        result['ave_rew'] = ave_rew
-        result['recnum'] = recnum
+        result['ave_rew'] = best_average_rew
+        result['recnum'] = best_recnum
+
 
         # 1. write logger
         logger.info("Epoch: [{}], Info: [{}]".format(epoch, result))

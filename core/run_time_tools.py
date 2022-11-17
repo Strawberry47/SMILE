@@ -1,14 +1,17 @@
 # coding: utf-8
+import os
 
 import numpy as np
 from torch.utils.data import DataLoader
 import torch
 from core.MF import PureMF, MFDataset
-
+os.environ["CUDA_VISIBLE_DEVICES"] = '0,1'
 
 def mf_with_bias(config,dataProcess):
     GPU = torch.cuda.is_available()
     device = torch.device('cuda' if GPU else "cpu")
+
+    # device = 'cpu'
     model = PureMF(config, dataProcess)
     model = model.to(device)
 
@@ -18,12 +21,11 @@ def mf_with_bias(config,dataProcess):
     train_iter = DataLoader(train_dataset, batch_size=1024)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=0.1)
     # model = model.float()
-    for epoch in range(1000):
+    for epoch in range(5000):
         model.train()
         total_loss,total_len  = 0.0, 0
         for x_u, x_i, y in train_iter:
             loss = model.cal_loss(x_u,x_i,y)
-
             optimizer.zero_grad()  # 清空这一批的梯度
             loss.backward()  # 回传
             optimizer.step()  # 参数更新
@@ -55,8 +57,8 @@ def clustering_vector_constructor(config,dataset):
         rating_matrix = dataset.sparseMatrix.toarray()[:]
         np.savetxt(X=rating_matrix, fname=result_file_path, delimiter='\t')
     elif config['USERSELECTOR']['CLUSTERING_VECTOR_TYPE']=='MF':
-        np.savetxt(X=np.loadtxt(fname=output + 'user_embedding_dim%s'%(config['META']['ACTION_DIM']),delimiter='\t'),
-                   fname=result_file_path, delimiter='\t')
+        file = np.loadtxt(fname=output + 'user_embedding_dim%s'%(config['META']['ACTION_DIM']),delimiter='\t')
+        np.savetxt(X=file,fname=result_file_path, delimiter='\t')
     else:
         print('not supported clustering vector type')
         exit(0)

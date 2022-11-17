@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# @Time    : 2022/6/25 13:32
+# @Author  : Shiqi Wang
+# @FileName: reward_calculator.py
+# -*- coding: utf-8 -*-
 # @Time    : 2022/5/23 22:16
 # @Author  : Shiqi Wang
 # @FileName: RewardCalculator.py
@@ -22,10 +26,9 @@ from core.utils import negative_sample
 
 
 class RewardCalculator():
-    def __init__(self,config,dataset,promoted_items,device='cuda:1'):
+    def __init__(self,config,dataset,promoted_items):
         promoted_item_list = config['ENV']['TARGET_ITEM_LIST'].split(', ')
         self.config = config
-        self.device = device
         self.promoted_items = promoted_items
         self.filenameU = config['META']['filenameU']
         self.filenameI = config['META']['filenameI']
@@ -92,9 +95,8 @@ class RewardCalculator():
 
     def train_test(self,df,device='cpu'):
         # BPR
-        # GPU = torch.cuda.is_available()
-        # device = torch.device('cuda' if GPU else "cpu")
-        device = self.device
+        GPU = torch.cuda.is_available()
+        device = torch.device('cuda' if GPU else "cpu")
         model = BPR(self.config,df,device)
         model = model.to(device)
 
@@ -110,22 +112,34 @@ class RewardCalculator():
         total_batch = len(users) // (2048 + 1)
         aver_loss = 0.
 
-        # with tqdm(enumerate(utils.minibatch(users, posItems, negItems, batch_size=2048)),
-        #           desc='BPR training',total=total_batch,leave=False) as t:
-        # for batch_i, (batch_users, batch_pos, batch_neg) in t:
-        for (batch_i,
-             (batch_users,
-              batch_pos,
-              batch_neg)) in enumerate(utils.minibatch(users,
-                                                       posItems,
-                                                       negItems,
-                                                       batch_size=2048)):
-
+        with tqdm(enumerate(utils.minibatch(users, posItems, negItems, batch_size=2048)),
+                  desc='BPR training',total=total_batch,leave=True) as t:
+            for batch_i, (batch_users, batch_pos, batch_neg) in t:
                 cri = bpr.stageOne(batch_users, batch_pos, batch_neg)  # 分批次传入(u,i,j)，更新，返回loss
                 aver_loss += cri
         aver_loss = aver_loss / total_batch
-        # print(' avg_loss: %f' % (aver_loss))
+        print(' avg_loss: %f' % (aver_loss))
 
+
+        # train_dataset = BPRDataset(self.config,df, device)
+        # train_iter = DataLoader(train_dataset, batch_size=2048)
+        # optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+        # start training
+        # for epoch in range(1):
+        #     model.train()
+        #     total_loss, total_len = 0.0, 0
+        #     for user,item_i,item_j in train_iter:
+        #         loss = model.cal_loss(user,item_i,item_j)
+        #         optimizer.zero_grad()  # 清空这一批的梯度
+        #         loss.backward()  # 回传
+        #         optimizer.step()  # 参数更新
+        #         total_loss += loss
+        #         total_len += len(user)
+        # #     print('----round%2d: avg_loss: %f' % (epoch, total_loss / total_len))
+        # # print('BPR training done.')
+
+        # start evulate
         model.eval()
         with torch.no_grad():
             users = list(self.original_data['userid'].unique())
